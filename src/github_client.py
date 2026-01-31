@@ -181,7 +181,7 @@ class GitHubClient:
         """
         comments = self.pr.get_issue_comments()
         for comment in comments:
-            if comment.body.startswith("## 🤖 AI Staff Review"):
+            if comment.body.startswith("## AI Staff Review"):
                 return comment.id
         return None
 

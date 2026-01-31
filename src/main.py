@@ -10,7 +10,7 @@ from typing import Dict, NoReturn
 
 from src.config import load_config, Config
 from src.github_client import GitHubClient
-from src.language_detector import detect_languages_in_files
+from src.language_detector import detect_languages_in_files, filter_reviewable_files
 from src.review.graph import create_review_graph
 from src.review.state import PRInfo, ReviewState
 from src.review.nodes.report_generator import generate_markdown_report
@@ -49,11 +49,15 @@ async def run_review(config: Config) -> Dict:
         pr_metadata = github.get_pr_metadata()
         pr_diff = github.get_full_diff_text()
 
-        # Detect languages
-        languages = list(detect_languages_in_files(pr_metadata.files_changed))
+        # Filter to only reviewable code files (excludes workflows, configs, etc.)
+        reviewable_files = filter_reviewable_files(pr_metadata.files_changed)
+        logger.info(f"Reviewable files: {len(reviewable_files)} of {len(pr_metadata.files_changed)}")
+
+        # Detect languages from reviewable files only
+        languages = list(detect_languages_in_files(reviewable_files))
         logger.info(f"Detected languages: {languages}")
 
-        # Create PR info object
+        # Create PR info object with filtered files
         pr_info = PRInfo(
             number=pr_metadata.number,
             title=pr_metadata.title,
@@ -61,7 +65,7 @@ async def run_review(config: Config) -> Dict:
             author=pr_metadata.author,
             base_branch=pr_metadata.base_branch,
             head_branch=pr_metadata.head_branch,
-            files_changed=pr_metadata.files_changed,
+            files_changed=reviewable_files,  # Only reviewable files
             additions=pr_metadata.additions,
             deletions=pr_metadata.deletions,
             url=pr_metadata.url,
