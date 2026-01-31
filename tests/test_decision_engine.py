@@ -1,5 +1,3 @@
-"""Tests for the decision engine."""
-
 import pytest
 
 from src.review.state import ReviewFinding, Severity, Category

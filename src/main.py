@@ -1,5 +1,3 @@
-"""Main entry point for the AI PR Review system."""
-
 from __future__ import annotations
 
 import asyncio
