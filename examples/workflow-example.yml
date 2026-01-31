@@ -1,0 +1,27 @@
+name: AI Staff Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+jobs:
+  ai-review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run AI Staff Review
+        uses: umerwaseem/agentic_github@main
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          # Optional: override the model
+          # openai_model: 'gpt-4o-mini'

@@ -1,0 +1,65 @@
+name: 'AI Staff Code Review'
+description: 'AI-powered code review that acts as a merge gate for Pull Requests'
+author: 'umerwaseem'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  openai_api_key:
+    description: 'OpenAI API key for LLM-powered reviews'
+    required: true
+  openai_model:
+    description: 'OpenAI model to use (default: gpt-4o)'
+    required: false
+    default: 'gpt-4o'
+  github_token:
+    description: 'GitHub token for API access (defaults to GITHUB_TOKEN)'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  decision:
+    description: 'Review decision (PASS or FAIL)'
+  blocking_issues:
+    description: 'Number of blocking issues found'
+  report_path:
+    description: 'Path to the generated DOCX report'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install langgraph langchain-openai PyGithub pydantic python-dotenv python-docx
+
+    - name: Run AI Review
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+        OPENAI_MODEL: ${{ inputs.openai_model }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        PYTHONPATH: ${{ github.action_path }}
+      run: python -m src.main
+      working-directory: ${{ github.action_path }}
+
+    - name: Upload Review Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ai-review-report-pr${{ github.event.pull_request.number }}
+        path: ${{ github.action_path }}/reports/*.docx
+        retention-days: 90
+        if-no-files-found: ignore
