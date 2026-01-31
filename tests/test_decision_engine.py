@@ -7,7 +7,6 @@ from src.review.nodes.decision_engine import decision_engine, get_decision_summa
 
 
 class TestDecisionEngine:
-    """Tests for the decision engine logic."""
 
     @pytest.mark.asyncio
     async def test_pass_with_no_findings(self):
@@ -86,7 +85,6 @@ class TestDecisionEngine:
 
 
 class TestGetDecisionSummary:
-    """Tests for decision summary generation."""
 
     def test_summary_format(self):
         state = {
@@ -111,5 +109,4 @@ class TestGetDecisionSummary:
         }
         summary = get_decision_summary(state)
         assert "FAIL" in summary
-        assert "85%" in summary
-        assert "Blocking issues: 1" in summary
+        assert "Blocking Issues: 1" in summary

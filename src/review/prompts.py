@@ -1,31 +1,31 @@
-"""Language-specific review prompts and criteria."""
+"""Language-specific review criteria."""
 
 from __future__ import annotations
 
 from typing import List
 
-# Python-specific review criteria
+
 PYTHON_CRITERIA = """
 ## Python-Specific Review Criteria
 
 ### Correctness
-- Check for missing `None` checks before method calls
-- Look for mutable default arguments (e.g., `def foo(x=[])`)
-- Verify proper exception handling with specific exception types
-- Check for potential `KeyError` when accessing dicts without `.get()`
-- Look for incorrect use of `is` vs `==` for value comparisons
+- Missing None checks before method calls
+- Mutable default arguments (e.g., def foo(x=[]))
+- Improper exception handling with generic exception types
+- Potential KeyError when accessing dicts without .get()
+- Incorrect use of is vs == for value comparisons
 
 ### Engineering Quality
 - Missing type hints on public functions
-- SQLAlchemy N+1 query patterns (accessing relationships in loops)
+- SQLAlchemy N+1 query patterns
 - Missing pagination for list/query operations
 - Blocking I/O in async functions
-- Missing input validation with Pydantic or type checking
+- Missing input validation
 
 ### Production Readiness
 - Hardcoded secrets or API keys
-- Missing logging with the `logging` module
-- Missing timeout parameters on HTTP requests (requests/httpx)
+- Missing logging
+- Missing timeout parameters on HTTP requests
 - Environment variables accessed without defaults
 - Missing error handling for external service calls
 """
@@ -34,64 +34,56 @@ DOTNET_CRITERIA = """
 ## .NET (C#) Specific Review Criteria
 
 ### Correctness
-- Null reference exceptions (missing null checks before dereferencing)
-- Improper `async`/`await` usage (missing await, async void)
-- `IDisposable` not properly disposed (missing `using` statements)
-- String comparison without `StringComparison` parameter
+- Null reference exceptions (missing null checks)
+- Improper async/await usage (missing await, async void)
+- IDisposable not properly disposed (missing using statements)
+- String comparison without StringComparison parameter
 - Collection modification during enumeration
 
 ### Engineering Quality
-- Entity Framework N+1 queries (not using `.Include()`)
-- Missing pagination on `IQueryable` (calling `.ToList()` on unbounded queries)
+- Entity Framework N+1 queries (not using .Include())
+- Missing pagination on IQueryable
 - Synchronous database calls instead of async
-- Missing input validation (no `[Required]` or FluentValidation)
-- Not using `ILogger<T>` for dependency-injected logging
+- Missing input validation
+- Not using ILogger<T> for logging
 
 ### Production Readiness
-- Secrets in `appsettings.json` without Azure Key Vault / Secret Manager
-- Missing `HttpClient` timeout configuration
-- No `IConfiguration` usage (hardcoded config values)
-- Missing structured logging / Application Insights
-- Catching `Exception` instead of specific exception types
+- Secrets in appsettings.json
+- Missing HttpClient timeout configuration
+- Hardcoded config values
+- Missing structured logging
+- Catching Exception instead of specific types
 """
 
 JAVASCRIPT_CRITERIA = """
 ## JavaScript/TypeScript Specific Review Criteria
 
 ### Correctness
-- Missing null/undefined checks (`?.` optional chaining not used)
-- Not handling Promise rejections (missing `.catch()` or try/catch)
-- Using `==` instead of `===` for comparisons
+- Missing null/undefined checks
+- Not handling Promise rejections
+- Using == instead of ===
 - Race conditions in async state updates
-- Incorrect `this` binding in callbacks
+- Incorrect this binding in callbacks
 
 ### Engineering Quality
-- Missing Zod/Yup/class-validator input validation
-- Prisma/Sequelize N+1 queries (not using `include`)
-- Missing pagination parameters on list queries
+- Missing input validation
+- N+1 queries (not using include)
+- Missing pagination parameters
 - Not using TypeScript strict mode
-- Unbounded array operations (`.map()` on unsanitized input)
+- Unbounded array operations
 
 ### Production Readiness
-- `console.log` instead of proper logging (pino, winston)
+- console.log instead of proper logging
 - Hardcoded API keys or secrets
-- Missing `process.env` usage for configuration
-- No timeout on `fetch` calls
-- Missing error boundaries in React components
+- Missing process.env usage for configuration
+- No timeout on fetch calls
+- Missing error boundaries in React
 """
 
-TYPESCRIPT_CRITERIA = JAVASCRIPT_CRITERIA  # Same criteria apply
+TYPESCRIPT_CRITERIA = JAVASCRIPT_CRITERIA
 
 
 def get_language_criteria(language: str) -> str:
-    """Get the review criteria for a specific language.
-
-    Args:
-        language: The language identifier.
-
-    Returns:
-        The language-specific review criteria as a markdown string.
-    """
     criteria_map = {
         "python": PYTHON_CRITERIA,
         "dotnet": DOTNET_CRITERIA,
@@ -102,14 +94,6 @@ def get_language_criteria(language: str) -> str:
 
 
 def get_combined_criteria(languages: List[str]) -> str:
-    """Get combined review criteria for multiple languages.
-
-    Args:
-        languages: List of language identifiers.
-
-    Returns:
-        Combined review criteria as a markdown string.
-    """
     criteria_parts = []
     for lang in languages:
         criteria = get_language_criteria(lang)

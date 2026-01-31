@@ -1,4 +1,4 @@
-"""Configuration management for the AI PR Reviewer."""
+"""Configuration management."""
 
 from __future__ import annotations
 
@@ -10,35 +10,22 @@ from dotenv import load_dotenv
 
 @dataclass
 class Config:
-    """Application configuration loaded from environment variables."""
-
-    # GitHub configuration
     github_token: str
     github_repository: str
     pr_number: int
-
-    # OpenAI configuration
     openai_api_key: str
     openai_model: str = "gpt-4o"
 
-    # Derived properties
     @property
     def repo_owner(self) -> str:
-        """Extract repository owner from GITHUB_REPOSITORY."""
         return self.github_repository.split("/")[0]
 
     @property
     def repo_name(self) -> str:
-        """Extract repository name from GITHUB_REPOSITORY."""
         return self.github_repository.split("/")[1]
 
 
 def load_config() -> Config:
-    """Load configuration from environment variables.
-
-    Raises:
-        ValueError: If required environment variables are missing.
-    """
     load_dotenv()
 
     def get_required(key: str) -> str:

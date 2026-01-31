@@ -1,4 +1,4 @@
-"""Report generator node - creates Markdown and DOCX reports."""
+"""Report generator node."""
 
 from __future__ import annotations
 
@@ -16,26 +16,15 @@ from src.review.state import PRInfo, ReviewFinding, ReviewState, Severity, Categ
 
 
 def generate_markdown_report(state: ReviewState, artifact_url: Optional[str] = None) -> str:
-    """Generate a Markdown report for GitHub PR comment.
-
-    Args:
-        state: The review state with all findings.
-        artifact_url: Optional URL to the downloadable DOCX report.
-
-    Returns:
-        Markdown-formatted report string.
-    """
     decision = state.get("decision", "UNKNOWN")
     findings = state.get("findings", [])
     pr_info = state.get("pr_metadata")
     confidence = state.get("confidence_score", 0)
 
-    # Group findings by severity
     blocking = [f for f in findings if f.severity == Severity.BLOCKING]
     non_blocking = [f for f in findings if f.severity == Severity.NON_BLOCKING]
     suggestions = [f for f in findings if f.severity == Severity.SUGGESTION]
 
-    # Professional header without emojis
     if decision == "PASS":
         header = "## AI Staff Review: PASSED"
     elif decision == "FAIL":
@@ -44,13 +33,10 @@ def generate_markdown_report(state: ReviewState, artifact_url: Optional[str] = N
         header = "## AI Staff Review: ERROR"
 
     lines = [header, ""]
-
-    # Summary section
     lines.append("### Summary")
     lines.append(state.get("intent_summary", "No summary available."))
     lines.append("")
 
-    # Blocking issues
     if blocking:
         lines.append(f"### Blocking Issues ({len(blocking)})")
         lines.append("")
@@ -60,12 +46,9 @@ def generate_markdown_report(state: ReviewState, artifact_url: Optional[str] = N
             file_loc = finding.file_path or "N/A"
             if finding.line_start:
                 file_loc += f":{finding.line_start}"
-            lines.append(
-                f"| {i} | `{file_loc}` | {finding.title} | {finding.category.value} |"
-            )
+            lines.append(f"| {i} | `{file_loc}` | {finding.title} | {finding.category.value} |")
         lines.append("")
 
-        # Detailed explanations
         lines.append("<details>")
         lines.append("<summary>View detailed explanations</summary>")
         lines.append("")
@@ -85,7 +68,6 @@ def generate_markdown_report(state: ReviewState, artifact_url: Optional[str] = N
         lines.append("</details>")
         lines.append("")
 
-    # Non-blocking issues
     if non_blocking:
         lines.append(f"### Non-Blocking Issues ({len(non_blocking)})")
         lines.append("")
@@ -98,7 +80,6 @@ def generate_markdown_report(state: ReviewState, artifact_url: Optional[str] = N
             lines.append(f"| {i} | `{file_loc}` | {finding.title} |")
         lines.append("")
 
-    # Suggestions (collapsed)
     if suggestions:
         lines.append("<details>")
         lines.append(f"<summary>Suggestions ({len(suggestions)})</summary>")
@@ -109,14 +90,12 @@ def generate_markdown_report(state: ReviewState, artifact_url: Optional[str] = N
         lines.append("</details>")
         lines.append("")
 
-    # If no issues at all
     if not findings:
         lines.append("### No Issues Found")
         lines.append("")
         lines.append("This PR passed all automated review checks.")
         lines.append("")
 
-    # Footer
     lines.append("---")
     lines.append(f"**Confidence:** {confidence:.0%}")
 
@@ -131,14 +110,6 @@ def generate_markdown_report(state: ReviewState, artifact_url: Optional[str] = N
 
 
 def generate_docx_report(state: ReviewState) -> bytes:
-    """Generate a Word document report.
-
-    Args:
-        state: The review state with all findings.
-
-    Returns:
-        The DOCX file as bytes.
-    """
     doc = Document()
 
     pr_info = state.get("pr_metadata")
@@ -146,11 +117,9 @@ def generate_docx_report(state: ReviewState) -> bytes:
     findings = state.get("findings", [])
     confidence = state.get("confidence_score", 0)
 
-    # Title
     title = doc.add_heading("Code Review Report", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    # Subtitle with PR info
     if pr_info:
         subtitle = doc.add_paragraph()
         subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -158,14 +127,12 @@ def generate_docx_report(state: ReviewState) -> bytes:
         run.font.size = Pt(14)
         run.font.color.rgb = RGBColor(100, 100, 100)
 
-    # Date
     date_para = doc.add_paragraph()
     date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     date_para.add_run(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     doc.add_paragraph()
 
-    # Decision box - professional without emojis
     decision_para = doc.add_paragraph()
     decision_text = "PASSED" if decision == "PASS" else "FAILED"
     decision_run = decision_para.add_run(f"Review Decision: {decision_text}")
@@ -179,11 +146,9 @@ def generate_docx_report(state: ReviewState) -> bytes:
     doc.add_paragraph(f"Confidence Score: {confidence:.0%}")
     doc.add_paragraph()
 
-    # Executive Summary
     doc.add_heading("Executive Summary", level=1)
     doc.add_paragraph(state.get("intent_summary", "No summary available."))
 
-    # PR Information
     if pr_info:
         doc.add_heading("Pull Request Information", level=1)
         info_table = doc.add_table(rows=6, cols=2)
@@ -206,12 +171,10 @@ def generate_docx_report(state: ReviewState) -> bytes:
 
     doc.add_paragraph()
 
-    # Group findings
     blocking = [f for f in findings if f.severity == Severity.BLOCKING]
     non_blocking = [f for f in findings if f.severity == Severity.NON_BLOCKING]
     suggestions = [f for f in findings if f.severity == Severity.SUGGESTION]
 
-    # Blocking Issues
     if blocking:
         doc.add_heading("Blocking Issues", level=1)
         doc.add_paragraph(
@@ -222,7 +185,6 @@ def generate_docx_report(state: ReviewState) -> bytes:
         for i, finding in enumerate(blocking, 1):
             doc.add_heading(f"{i}. {finding.title}", level=2)
 
-            # Issue details table
             table = doc.add_table(rows=4, cols=2)
             table.style = "Table Grid"
 
@@ -260,7 +222,6 @@ def generate_docx_report(state: ReviewState) -> bytes:
 
             doc.add_paragraph()
 
-    # Non-blocking Issues
     if non_blocking:
         doc.add_heading("Non-Blocking Issues", level=1)
         doc.add_paragraph(
@@ -277,7 +238,6 @@ def generate_docx_report(state: ReviewState) -> bytes:
                 fix_para.add_run(finding.suggested_fix)
             doc.add_paragraph()
 
-    # Suggestions
     if suggestions:
         doc.add_heading("Suggestions", level=1)
         doc.add_paragraph("Optional improvements that could enhance code quality:")
@@ -287,7 +247,6 @@ def generate_docx_report(state: ReviewState) -> bytes:
             bullet.add_run(f"{finding.title}: ").font.bold = True
             bullet.add_run(finding.description)
 
-    # No issues
     if not findings:
         doc.add_heading("Review Results", level=1)
         doc.add_paragraph(
@@ -295,7 +254,6 @@ def generate_docx_report(state: ReviewState) -> bytes:
             "This PR appears to follow best practices and is ready for human review."
         )
 
-    # Footer
     doc.add_paragraph()
     doc.add_paragraph("-" * 60)
     footer = doc.add_paragraph()
@@ -304,7 +262,6 @@ def generate_docx_report(state: ReviewState) -> bytes:
         "It is intended to assist human reviewers and should not be considered a complete review."
     ).font.italic = True
 
-    # Save to bytes
     buffer = BytesIO()
     doc.save(buffer)
     buffer.seek(0)
@@ -312,26 +269,14 @@ def generate_docx_report(state: ReviewState) -> bytes:
 
 
 def save_docx_report(state: ReviewState, output_dir: str = "reports") -> str:
-    """Save the DOCX report to a file.
-
-    Args:
-        state: The review state with all findings.
-        output_dir: Directory to save the report.
-
-    Returns:
-        Path to the saved report file.
-    """
-    # Create output directory
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    # Generate filename
     pr_info = state.get("pr_metadata")
     pr_num = pr_info.number if pr_info else "unknown"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"code_review_pr{pr_num}_{timestamp}.docx"
     filepath = os.path.join(output_dir, filename)
 
-    # Generate and save
     docx_bytes = generate_docx_report(state)
     with open(filepath, "wb") as f:
         f.write(docx_bytes)
@@ -340,18 +285,7 @@ def save_docx_report(state: ReviewState, output_dir: str = "reports") -> str:
 
 
 async def report_generator(state: ReviewState) -> dict:
-    """Generate both Markdown and DOCX reports.
-
-    Args:
-        state: The review state with all findings.
-
-    Returns:
-        Updated state with report paths.
-    """
-    # Save DOCX report
     docx_path = save_docx_report(state)
-
-    # Generate Markdown (artifact URL will be added by main.py)
     markdown_report = generate_markdown_report(state)
 
     return {

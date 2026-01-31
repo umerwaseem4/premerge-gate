@@ -1,61 +1,46 @@
-"""Intent analysis node - understands what the PR is trying to accomplish."""
+"""Intent analysis node."""
 
 from __future__ import annotations
 
 import json
 from typing import Dict
 
-from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
 
 from src.review.state import ReviewState
 
 
-SYSTEM_PROMPT = """You are a senior software engineer analyzing a Pull Request to understand its intent.
+SYSTEM_PROMPT = """You are a senior code reviewer analyzing a Pull Request.
+Your task is to understand the intent and scope of the changes.
 
-Your task is to:
-1. Summarize what this PR is trying to accomplish in 2-3 sentences
-2. Identify the main areas of change (new features, bug fixes, refactoring, etc.)
-3. Assess the risk level (low, medium, high) based on the scope of changes
-
-Output your analysis as JSON with this structure:
+Respond in JSON format:
 {
     "summary": "Brief description of what this PR does",
     "change_type": "feature|bugfix|refactor|docs|test|chore",
-    "risk_level": "low|medium|high",
-    "areas_affected": ["list", "of", "affected", "areas"],
-    "key_concerns": ["list of things to watch out for during review"]
+    "risk_level": "low|medium|high|critical",
+    "areas_affected": ["list", "of", "areas"],
+    "key_concerns": ["list", "of", "potential", "concerns"]
 }
-
-Be concise and focus on the most important information."""
+"""
 
 
 async def intent_analysis(state: ReviewState, llm: ChatOpenAI) -> Dict:
-    """Analyze the PR to understand its intent.
-
-    Args:
-        state: Current review state.
-        llm: The LLM to use for analysis.
-
-    Returns:
-        Updated state with intent summary.
-    """
     pr_info = state["pr_metadata"]
+    diff = state["pr_diff"]
+    languages = state.get("languages", [])
 
-    user_message = f"""# Pull Request: {pr_info.title}
+    user_message = f"""
+PR Title: {pr_info.title}
+PR Description: {pr_info.description or "No description"}
+Author: {pr_info.author}
+Target: {pr_info.base_branch} <- {pr_info.head_branch}
+Languages: {', '.join(languages) if languages else 'Unknown'}
+Files Changed: {len(pr_info.files_changed)}
+Changes: +{pr_info.additions} / -{pr_info.deletions}
 
-## Description
-{pr_info.description or "No description provided."}
-
-## Files Changed ({len(pr_info.files_changed)} files, +{pr_info.additions}/-{pr_info.deletions})
-{chr(10).join(f"- {f}" for f in pr_info.files_changed[:20])}
-{"... and more files" if len(pr_info.files_changed) > 20 else ""}
-
-## Diff
-```diff
-{state["pr_diff"][:8000]}
-```
-{"... (diff truncated)" if len(state["pr_diff"]) > 8000 else ""}
+Diff:
+{diff[:8000]}
 """
 
     response = await llm.ainvoke([
@@ -63,10 +48,8 @@ async def intent_analysis(state: ReviewState, llm: ChatOpenAI) -> Dict:
         HumanMessage(content=user_message),
     ])
 
-    # Parse the JSON response
     try:
         content = response.content
-        # Handle markdown code blocks
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0]
         elif "```" in content:
